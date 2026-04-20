@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // mengirim hasilnya ke sini; fungsi ini mengembalikan Promise<Device[]>
   getCameras: () => ipcRenderer.invoke('get-cameras'),
 
+  // Kirim hasil enumerasi kamera dari renderer ke main process
+  reportCameraResult: (cameras) => ipcRenderer.invoke('report-camera-result', cameras),
+
   // Mulai ujian, kirim deviceId kamera yang dipilih
   startExam: (selectedCameraDeviceId) =>
     ipcRenderer.invoke('start-exam', selectedCameraDeviceId),

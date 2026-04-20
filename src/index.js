@@ -22,8 +22,12 @@ if (app.isPackaged) {
 }
 
 // ---------------------------------------------------------------------------
-// Window references
+// Camera result from renderer (set before runValidation is called)
 // ---------------------------------------------------------------------------
+/** @type {Array<{deviceId: string, label: string}>} */
+let rendererCameraList = null;
+
+
 
 /** @type {BrowserWindow|null} */
 let launcherWindow = null;
@@ -140,6 +144,8 @@ function buildErrorPage(message) {
 // ---------------------------------------------------------------------------
 
 function createCbtWindow(selectedCameraDeviceId) {
+  // selectedCameraDeviceId is stored for future use (e.g. passing to CBT site via query param)
+  void selectedCameraDeviceId;
   cbtWindow = new BrowserWindow({
     fullscreen: true,
     kiosk: true,
@@ -236,10 +242,15 @@ function unregisterKioskShortcuts() {
 // ---------------------------------------------------------------------------
 
 function registerIpcHandlers() {
-  // Run device validation
+  // Receive camera list from renderer before validation runs
+  ipcMain.handle('report-camera-result', (_event, cameras) => {
+    rendererCameraList = Array.isArray(cameras) ? cameras : [];
+  });
+
+  // Run device validation — pass renderer-provided camera list if available
   ipcMain.handle('run-validation', async () => {
     try {
-      return await validator.runAll();
+      return await validator.runAll(rendererCameraList);
     } catch (err) {
       return { error: true, message: err.message || 'Validasi gagal' };
     }

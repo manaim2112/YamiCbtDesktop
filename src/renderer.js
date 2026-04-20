@@ -119,13 +119,6 @@ async function handleSummary(summary) {
     if (id) setResult(id, passed, message);
   });
 
-  // If camera passed, enumerate devices for selector
-  const cameraResult = summary.results.find((r) => r.type === 'camera');
-  if (cameraResult && cameraResult.passed) {
-    const cameras = await enumerateCameras();
-    await setupCameraSelector(cameras);
-  }
-
   updateStartButton(summary.allPassed === true);
 }
 
@@ -168,8 +161,6 @@ async function init() {
   // Show app version
   const verEl = document.getElementById('app-version');
   if (verEl) {
-    // process.env.npm_package_version is not available in renderer;
-    // we read it from the title attribute set by main, or leave blank.
     verEl.textContent = '';
   }
 
@@ -182,7 +173,13 @@ async function init() {
   // Listen for update events
   setupUpdateListener();
 
-  // Run validation
+  // Enumerate cameras FIRST in renderer (only place with mediaDevices access),
+  // then report to main process before running full validation.
+  const cameras = await enumerateCameras();
+  await setupCameraSelector(cameras);
+  await window.electronAPI.reportCameraResult(cameras);
+
+  // Run validation (main process now knows camera count from reportCameraResult)
   try {
     const summary = await window.electronAPI.runValidation();
     await handleSummary(summary);

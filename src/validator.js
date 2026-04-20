@@ -213,12 +213,19 @@ async function checkHardware() {
 /**
  * Run all three checks in parallel and return a ValidationSummary.
  *
+ * @param {Array<{ deviceId: string, label: string }>|null} [cameraDevices]
+ *   Optional camera device list pre-enumerated by the renderer.
+ *   When provided, skips the desktopCapturer proxy and uses the real list.
  * @returns {Promise<{ results: Array, allPassed: boolean }>}
  */
-async function runAll() {
+async function runAll(cameraDevices) {
+  const cameraResult = cameraDevices != null
+    ? evaluateCameraDevices(cameraDevices)
+    : checkCamera();
+
   const results = await Promise.all([
     checkInternet(),
-    checkCamera(),
+    cameraResult,
     checkHardware(),
   ]);
   return buildSummary(results);
