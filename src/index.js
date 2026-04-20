@@ -19,7 +19,6 @@ const { EXIT_SHORTCUT, CBT_URL } = require('./constants');
 if (app.isPackaged) {
   require('update-electron-app')({
     updateInterval: '1 hour',
-    logger: require('electron').autoUpdater,
   });
 }
 

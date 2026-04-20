@@ -13,6 +13,9 @@ jobs:
     permissions:
       contents: write          # Diperlukan untuk membuat GitHub Release
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Opt-in ke Node.js 24 sekarang
+
     steps:
       # 1. Checkout kode
       - name: Checkout
