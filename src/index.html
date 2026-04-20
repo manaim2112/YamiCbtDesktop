@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CBT Launcher</title>
+    <link rel="stylesheet" href="index.css" />
+  </head>
+  <body>
+
+    <!-- Update banner (hidden by default) -->
+    <div class="update-banner" id="update-banner" hidden>
+      <span class="update-text" id="update-text"></span>
+      <button class="update-btn" id="update-btn" hidden>Pasang &amp; Restart</button>
+    </div>
+
+    <div class="card">
+
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <path d="M8 21h8M12 17v4"/>
+        </svg>
+        <span class="brand-name">CBT Launcher</span>
+        <span class="app-version" id="app-version"></span>
+      </div>
+
+      <!-- Validation checks -->
+      <ul class="checks" role="list">
+        <li class="check-item" id="check-internet">
+          <div class="check-left">
+            <div class="check-dot"></div>
+            <div class="check-info">
+              <span class="check-label">Internet</span>
+              <span class="check-msg">Memeriksa...</span>
+            </div>
+          </div>
+          <div class="check-badge">
+            <svg class="icon-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          </div>
+        </li>
+
+        <li class="check-item" id="check-camera">
+          <div class="check-left">
+            <div class="check-dot"></div>
+            <div class="check-info">
+              <span class="check-label">Kamera</span>
+              <span class="check-msg">Memeriksa...</span>
+            </div>
+          </div>
+          <div class="check-badge">
+            <svg class="icon-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          </div>
+        </li>
+
+        <li class="check-item" id="check-hardware">
+          <div class="check-left">
+            <div class="check-dot"></div>
+            <div class="check-info">
+              <span class="check-label">RAM</span>
+              <span class="check-msg">Memeriksa...</span>
+            </div>
+          </div>
+          <div class="check-badge">
+            <svg class="icon-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          </div>
+        </li>
+      </ul>
+
+      <!-- Camera selector (shown only when ≥2 cameras detected) -->
+      <div class="camera-select-wrap" id="camera-select-wrap" hidden>
+        <label class="select-label" for="camera-select">Pilih kamera</label>
+        <div class="select-wrapper">
+          <select class="camera-select" id="camera-select"></select>
+          <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+      </div>
+
+      <p class="note" id="validation-note" hidden>
+        Perbaiki masalah di atas sebelum memulai ujian.
+      </p>
+
+      <button class="btn-start" id="btn-start" disabled>
+        Mulai Ujian
+      </button>
+
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>
