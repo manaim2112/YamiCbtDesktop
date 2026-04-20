@@ -1,0 +1,58 @@
+name: Build & Release
+
+# Trigger: hanya ketika push tag versi seperti v1.0.0, v1.2.3, dst.
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: windows-latest   # Squirrel installer hanya bisa di-build di Windows
+
+    permissions:
+      contents: write          # Diperlukan untuk membuat GitHub Release
+
+    steps:
+      # 1. Checkout kode
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Jalankan tests — batalkan release jika ada yang gagal
+      - name: Run tests
+        run: npm test
+
+      # 5. Build installer dengan electron-forge
+      - name: Build installer
+        run: npm run make
+        env:
+          # Dibutuhkan oleh electron-forge untuk membuat GitHub Release
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 6. Buat GitHub Release dan upload semua file dari out/make/
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Nama release otomatis dari tag, misal "v1.0.1"
+          name: ${{ github.ref_name }}
+          # Draft = false → langsung publish (ubah ke true jika mau review dulu)
+          draft: false
+          prerelease: false
+          # Upload semua file installer yang dihasilkan forge
+          files: |
+            out/make/**/*.exe
+            out/make/**/*.nupkg
+            out/make/**/RELEASES
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

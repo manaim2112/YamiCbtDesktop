@@ -22,6 +22,10 @@
     "email": "m.a.naim2112@gmail.com"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/manaim2112/YamiCbtDesktop"
+  },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
     "update-electron-app": "3.1.2"

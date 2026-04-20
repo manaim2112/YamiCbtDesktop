@@ -13,6 +13,8 @@ Aplikasi desktop peluncur ujian berbasis komputer (CBT) untuk MTs Supel, dibangu
 ## Fitur
 
 - Validasi otomatis: koneksi internet, kamera, dan RAM minimum
+- **Pemilihan kamera** — jika ada ≥2 kamera, dropdown muncul untuk memilih kamera yang digunakan
+- **Auto-update** — cek pembaruan dari GitHub Releases saat app dibuka, notifikasi banner + tombol pasang
 - Mode kiosk fullscreen — tidak bisa di-minimize, resize, atau ditutup secara normal
 - Blokir keyboard berbahaya (F11, F12, Ctrl+R, Ctrl+W, Alt+F4, Ctrl+Shift+I)
 - Blokir navigasi ke URL di luar domain CBT
@@ -217,7 +219,43 @@ Dikonfigurasi di `forge.config.js` saat packaging:
 
 ---
 
-## Build & Distribusi
+## Auto-Update
+
+Aplikasi menggunakan [`update-electron-app`](https://github.com/electron/update-electron-app) yang terhubung ke GitHub Releases secara otomatis.
+
+**Cara kerja:**
+1. Saat app dibuka (dalam mode packaged), app cek GitHub Releases setiap 1 jam
+2. Jika ada versi baru, banner muncul di atas launcher: *"Pembaruan tersedia, sedang mengunduh..."*
+3. Setelah download selesai, banner berubah: *"Pembaruan siap dipasang"* + tombol **Pasang & Restart**
+4. Klik tombol → app restart otomatis dengan versi baru
+
+**Cara merilis update (otomatis via GitHub Actions):**
+```bash
+# 1. Naikkan versi — otomatis buat commit + tag
+npm version patch   # 1.0.0 → 1.0.1  (bugfix)
+npm version minor   # 1.0.0 → 1.1.0  (fitur baru)
+npm version major   # 1.0.0 → 2.0.0  (breaking change)
+
+# 2. Push commit + tag ke GitHub
+git push && git push --tags
+```
+
+Setelah push tag, GitHub Actions akan otomatis:
+1. Checkout kode
+2. Install dependencies
+3. Jalankan semua tests — jika gagal, release dibatalkan
+4. Build installer Windows (`.exe`, `.nupkg`, `RELEASES`)
+5. Buat GitHub Release dan upload semua file installer
+
+Kamu bisa pantau prosesnya di tab **Actions** di repository GitHub.
+
+> Auto-update hanya aktif di app yang sudah di-package. Saat development (`npm start`), fitur ini dinonaktifkan otomatis.
+
+**Repository:** https://github.com/manaim2112/YamiCbtDesktop (harus public)
+
+---
+
+
 
 ```bash
 # Package (tanpa installer)
