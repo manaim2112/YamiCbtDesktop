@@ -17,9 +17,8 @@ const { EXIT_SHORTCUT, CBT_URL } = require('./constants');
 // Only runs in packaged app, not in dev mode.
 // ---------------------------------------------------------------------------
 if (app.isPackaged) {
-  require('update-electron-app')({
-    updateInterval: '1 hour',
-  });
+  const { updateElectronApp } = require('update-electron-app');
+  updateElectronApp({ updateInterval: '1 hour' });
 }
 
 // ---------------------------------------------------------------------------
@@ -286,35 +285,12 @@ function registerIpcHandlers() {
     }
   });
 
-  // Auto-update status events forwarded to renderer
-  if (app.isPackaged) {
-    const { autoUpdater } = require('electron');
-    autoUpdater.on('update-available', () => {
-      if (launcherWindow && !launcherWindow.isDestroyed()) {
-        launcherWindow.webContents.send('update-status', { status: 'available' });
-      }
-    });
-    autoUpdater.on('update-downloaded', () => {
-      if (launcherWindow && !launcherWindow.isDestroyed()) {
-        launcherWindow.webContents.send('update-status', { status: 'downloaded' });
-      }
-    });
-    autoUpdater.on('update-not-available', () => {
-      if (launcherWindow && !launcherWindow.isDestroyed()) {
-        launcherWindow.webContents.send('update-status', { status: 'up-to-date' });
-      }
-    });
-    autoUpdater.on('error', (err) => {
-      if (launcherWindow && !launcherWindow.isDestroyed()) {
-        launcherWindow.webContents.send('update-status', { status: 'error', message: err.message });
-      }
-    });
-  }
-
-  // Install update and restart
+  // Auto-update: update-electron-app handles autoUpdater events internally.
+  // We only need to handle install-update IPC from renderer.
   ipcMain.handle('install-update', () => {
     if (app.isPackaged) {
-      require('electron').autoUpdater.quitAndInstall();
+      const { autoUpdater } = require('electron');
+      autoUpdater.quitAndInstall();
     }
   });
 }
