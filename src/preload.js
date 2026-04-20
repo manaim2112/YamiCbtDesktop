@@ -31,6 +31,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Info sistem perangkat (OS, CPU, RAM, arch)
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
 
+  // Branding (nama app, tagline, logo)
+  getBranding: () => ipcRenderer.invoke('get-branding'),
+
   // Auto-update
   onUpdateStatus: (callback) =>
     ipcRenderer.on('update-status', (_e, info) => callback(info)),

@@ -164,6 +164,8 @@ function createLauncherWindow() {
     width: 420,
     height: 640,
     resizable: false,
+    frame: false,          // hide native title bar / menu bar
+    titleBarStyle: 'hidden',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -408,6 +410,12 @@ function registerIpcHandlers() {
       totalmem: os.totalmem(),
       arch: os.arch(),
     };
+  });
+
+  // Branding info — name, tagline, logo path
+  ipcMain.handle('get-branding', () => {
+    const { APP_NAME, APP_TAGLINE, APP_LOGO } = require('./constants');
+    return { name: APP_NAME, tagline: APP_TAGLINE, logo: APP_LOGO };
   });
 }
 

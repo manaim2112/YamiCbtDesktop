@@ -51,6 +51,43 @@ function updateStartButton(allPassed) {
   note.hidden  = allPassed;
 }
 
+// ── Branding ──────────────────────────────────────────────────────────────
+
+/**
+ * Load branding (name, tagline, logo) from main process constants.
+ * Allows customisation without touching HTML.
+ */
+async function loadBranding() {
+  try {
+    const b = await window.electronAPI.getBranding();
+
+    if (b.name) {
+      const el = document.getElementById('brand-name');
+      if (el) el.textContent = b.name;
+    }
+
+    if (b.tagline) {
+      const el = document.getElementById('brand-tagline');
+      if (el) el.textContent = b.tagline;
+    }
+
+    // Replace default SVG logo with an <img> if APP_LOGO is set
+    if (b.logo) {
+      const wrap = document.getElementById('brand-logo');
+      if (wrap) {
+        const img = document.createElement('img');
+        img.src = b.logo;
+        img.alt = b.name || 'Logo';
+        img.onerror = () => { /* keep SVG fallback if image fails */ };
+        wrap.innerHTML = '';
+        wrap.appendChild(img);
+      }
+    }
+  } catch {
+    // Non-critical — HTML defaults remain
+  }
+}
+
 // ── Spec strip ────────────────────────────────────────────────────────────
 
 /**
@@ -74,7 +111,6 @@ async function loadSpecStrip() {
         .replace(/\(R\)|\(TM\)|CPU|@.*/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
-      // Truncate to ~18 chars for the strip
       if (cpuModel.length > 18) cpuModel = cpuModel.slice(0, 17) + '…';
       document.getElementById('spec-cpu').textContent = cpuModel;
     }
@@ -93,10 +129,11 @@ async function loadSpecStrip() {
 // ── Camera preview ────────────────────────────────────────────────────────
 
 /**
- * Start live camera preview in the hero area using the selected deviceId.
+ * Start live camera preview in the thumbnail using the selected deviceId.
  */
 async function startCameraPreview(deviceId) {
-  const video = document.getElementById('camera-preview');
+  const video       = document.getElementById('camera-preview');
+  const placeholder = document.getElementById('cam-thumb-placeholder');
   if (!video) return;
 
   // Stop any existing stream
@@ -113,8 +150,10 @@ async function startCameraPreview(deviceId) {
     previewStream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = previewStream;
     video.classList.add('active');
+    if (placeholder) placeholder.style.display = 'none';
   } catch {
     // Preview failed — not critical, validation still works
+    if (placeholder) placeholder.style.display = '';
   }
 }
 
@@ -127,9 +166,8 @@ async function startCameraPreview(deviceId) {
  */
 async function enumerateCameras() {
   try {
-    // Request a brief stream just to unlock labelled device enumeration
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-    stream.getTracks().forEach((t) => t.stop()); // release immediately
+    stream.getTracks().forEach((t) => t.stop());
 
     const devices = await navigator.mediaDevices.enumerateDevices();
     return devices
@@ -144,26 +182,20 @@ async function enumerateCameras() {
 }
 
 /**
- * Populate the camera <select> and show it when there is ≥1 camera.
- * Always shows the selector so the user can confirm which camera is active.
+ * Populate the camera selector row.
+ * Shows for ≥1 camera so user can always confirm which camera is active.
  */
 async function setupCameraSelector(cameras) {
-  const wrap     = document.getElementById('camera-select-wrap');
-  const select   = document.getElementById('camera-select');
-  const noDevice = document.getElementById('camera-no-device');
+  const wrap   = document.getElementById('camera-select-wrap');
+  const select = document.getElementById('camera-select');
 
   if (cameras.length === 0) {
-    wrap.hidden     = true;
-    noDevice.hidden = false;
+    wrap.hidden = true;
     return;
   }
 
-  noDevice.hidden = true;
-
-  // Auto-select first camera
   selectedCameraId = cameras[0].deviceId;
 
-  // Populate options
   select.innerHTML = '';
   cameras.forEach(({ deviceId, label }) => {
     const opt = document.createElement('option');
@@ -175,7 +207,6 @@ async function setupCameraSelector(cameras) {
   select.value = selectedCameraId;
   wrap.hidden = false;
 
-  // Start preview for initial selection
   await startCameraPreview(selectedCameraId);
 
   select.addEventListener('change', async () => {
@@ -201,9 +232,9 @@ async function handleSummary(summary) {
 
 function setupUpdateListener() {
   window.electronAPI.onUpdateStatus((info) => {
-    const banner  = document.getElementById('update-banner');
-    const text    = document.getElementById('update-text');
-    const btn     = document.getElementById('update-btn');
+    const banner = document.getElementById('update-banner');
+    const text   = document.getElementById('update-text');
+    const btn    = document.getElementById('update-btn');
 
     banner.hidden = false;
 
@@ -216,7 +247,6 @@ function setupUpdateListener() {
     } else if (info.status === 'up-to-date') {
       text.textContent = 'Aplikasi sudah versi terbaru.';
       btn.hidden = true;
-      // Auto-hide after 4 seconds
       setTimeout(() => { banner.hidden = true; }, 4000);
     } else if (info.status === 'error') {
       text.textContent = 'Gagal memeriksa pembaruan.';
@@ -233,11 +263,8 @@ function setupUpdateListener() {
 // ── Main init ──────────────────────────────────────────────────────────────
 
 async function init() {
-  // Show app version
-  const verEl = document.getElementById('app-version');
-  if (verEl) {
-    verEl.textContent = '';
-  }
+  // Load branding from constants (non-blocking)
+  loadBranding();
 
   // Load device spec strip (non-blocking)
   loadSpecStrip();
@@ -251,13 +278,12 @@ async function init() {
   // Listen for update events
   setupUpdateListener();
 
-  // Enumerate cameras FIRST in renderer (only place with mediaDevices access),
-  // then report to main process before running full validation.
+  // Enumerate cameras FIRST — only renderer has mediaDevices access
   const cameras = await enumerateCameras();
   await setupCameraSelector(cameras);
   await window.electronAPI.reportCameraResult(cameras);
 
-  // Run validation (main process now knows camera count from reportCameraResult)
+  // Run validation (main process now has camera list from reportCameraResult)
   try {
     const summary = await window.electronAPI.runValidation();
     await handleSummary(summary);

@@ -16,43 +16,32 @@
 
     <div class="card">
 
-      <!-- Camera hero — live preview + selector -->
-      <div class="camera-hero" id="camera-hero">
-        <video class="camera-preview" id="camera-preview" autoplay muted playsinline></video>
-        <div class="camera-overlay">
-          <div class="camera-overlay-top">
-            <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <path d="M8 21h8M12 17v4"/>
-            </svg>
-            <span class="brand-name">CBT Launcher</span>
-            <span class="app-version" id="app-version"></span>
-          </div>
-          <!-- Camera selector inside hero -->
-          <div class="camera-hero-bottom" id="camera-select-wrap" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="cam-icon">
-              <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
-            </svg>
-            <div class="select-wrapper">
-              <select class="camera-select" id="camera-select"></select>
-              <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="6 9 12 15 18 9"/>
-              </svg>
-            </div>
-          </div>
-          <!-- No camera placeholder -->
-          <div class="camera-no-device" id="camera-no-device" hidden>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
-              <line x1="1" y1="1" x2="23" y2="23"/>
-            </svg>
-            <span>Kamera tidak terdeteksi</span>
-          </div>
+      <!-- Brand hero -->
+      <div class="brand-hero">
+        <!-- Logo: replaced with <img> by renderer if APP_LOGO is set -->
+        <div class="brand-logo" id="brand-logo">
+          <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="40" height="40" rx="10" fill="url(#lg)"/>
+            <path d="M10 14h20M10 20h14M10 26h8" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="30" cy="26" r="5" fill="#fff" fill-opacity="0.15" stroke="#fff" stroke-width="1.5"/>
+            <path d="M28 26l1.5 1.5L32 24" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="lg" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#6366f1"/>
+                <stop offset="1" stop-color="#4f46e5"/>
+              </linearGradient>
+            </defs>
+          </svg>
         </div>
+        <div class="brand-text">
+          <span class="brand-name" id="brand-name">Yamitra.com</span>
+          <span class="brand-tagline" id="brand-tagline">Management a SaaS Application</span>
+        </div>
+        <span class="app-version" id="app-version"></span>
       </div>
 
       <!-- Device spec strip -->
-      <div class="spec-strip" id="spec-strip">
+      <div class="spec-strip">
         <div class="spec-item">
           <span class="spec-label">OS</span>
           <span class="spec-value" id="spec-os">—</span>
@@ -121,6 +110,28 @@
           </div>
         </li>
       </ul>
+
+      <!-- Camera selector (shown after enumeration) -->
+      <div class="camera-row" id="camera-select-wrap" hidden>
+        <svg class="cam-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+        </svg>
+        <div class="select-wrapper">
+          <select class="camera-select" id="camera-select"></select>
+          <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        <!-- Live preview thumbnail -->
+        <div class="cam-thumb-wrap">
+          <video class="cam-thumb" id="camera-preview" autoplay muted playsinline></video>
+          <div class="cam-thumb-placeholder" id="cam-thumb-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+            </svg>
+          </div>
+        </div>
+      </div>
 
       <p class="note" id="validation-note" hidden>
         Perbaiki masalah di atas sebelum memulai ujian.
