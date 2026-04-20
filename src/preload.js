@@ -28,6 +28,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Muat ulang CBT_URL dari halaman error
   retryLoad: () => ipcRenderer.invoke('retry-load'),
 
+  // Info sistem perangkat (OS, CPU, RAM, arch)
+  getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+
   // Auto-update
   onUpdateStatus: (callback) =>
     ipcRenderer.on('update-status', (_e, info) => callback(info)),

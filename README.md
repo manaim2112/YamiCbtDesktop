@@ -12,8 +12,10 @@ Aplikasi desktop peluncur ujian berbasis komputer (CBT) untuk MTs Supel, dibangu
 
 ## Fitur
 
-- Validasi otomatis: koneksi internet, kamera, dan RAM minimum
-- **Pemilihan kamera** — jika ada ≥2 kamera, dropdown muncul untuk memilih kamera yang digunakan
+- **Validasi otomatis** — koneksi internet, kamera, dan RAM minimum
+- **Preview kamera live** — tampilan real-time kamera yang dipilih di hero section
+- **Pemilihan kamera** — jika ada ≥1 kamera, dropdown muncul untuk memilih kamera yang digunakan
+- **Spesifikasi perangkat** — strip info menampilkan OS, CPU, RAM total, dan arsitektur sistem
 - **Auto-update** — cek pembaruan dari GitHub Releases saat app dibuka, notifikasi banner + tombol pasang
 - Mode kiosk fullscreen — tidak bisa di-minimize, resize, atau ditutup secara normal
 - Blokir keyboard berbahaya (F11, F12, Ctrl+R, Ctrl+W, Alt+F4, Ctrl+Shift+I)
@@ -22,7 +24,7 @@ Aplikasi desktop peluncur ujian berbasis komputer (CBT) untuk MTs Supel, dibangu
 - Nonaktifkan menu konteks klik kanan
 - Pre-grant izin kamera otomatis (tanpa dialog konfirmasi)
 - Halaman error dengan tombol "Coba Lagi" jika server tidak dapat dimuat
-- Suppression Win key via Windows API saat sesi ujian aktif
+- Suppression Win key via low-level keyboard hook (`WH_KEYBOARD_LL`) saat sesi ujian aktif
 
 ---
 
@@ -76,9 +78,9 @@ Tidak ada shortcut khusus. Tombol **Mulai Ujian** hanya aktif jika semua validas
 
 | Shortcut | Fungsi |
 |---|---|
-| **Ctrl+Shift+Q** | Keluar dari aplikasi (menutup seluruh sesi ujian) |
+| **Ctrl+Shift+Q** | ⚠️ Keluar dari aplikasi — **khusus pengawas ujian** |
 
-> **Catatan penting:** Shortcut keluar hanya boleh digunakan oleh pengawas ujian. Berikan kombinasi ini hanya kepada pengawas.
+> **Catatan penting:** Shortcut `Ctrl+Shift+Q` menutup seluruh sesi ujian secara paksa. Hanya berikan kombinasi ini kepada pengawas, jangan kepada peserta ujian.
 
 ### Keyboard yang diblokir selama sesi ujian
 
@@ -101,7 +103,7 @@ Tidak ada shortcut khusus. Tombol **Mulai Ujian** hanya aktif jika semua validas
 | Super+X | Quick Link menu |
 | Alt+Escape | Window cycling |
 | Ctrl+Escape | Start Menu (alternatif) |
-| Win key | Start Menu — diblokir via Windows API (`SystemParametersInfo`) |
+| Win key | Start Menu — diblokir via low-level keyboard hook (`WH_KEYBOARD_LL`) |
 
 > **Tidak bisa diblokir:** `Ctrl+Alt+Delete` — ini reserved di level kernel Windows dan tidak dapat dicegat oleh aplikasi manapun.
 

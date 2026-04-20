@@ -19,6 +19,9 @@ const ICON_SPIN = `<svg class="icon-spin" viewBox="0 0 24 24" fill="none" stroke
 /** @type {string|null} deviceId kamera yang dipilih */
 let selectedCameraId = null;
 
+/** @type {MediaStream|null} stream preview kamera aktif */
+let previewStream = null;
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function getElementId(type) {
@@ -48,6 +51,73 @@ function updateStartButton(allPassed) {
   note.hidden  = allPassed;
 }
 
+// ── Spec strip ────────────────────────────────────────────────────────────
+
+/**
+ * Populate the device spec strip with OS, CPU model, RAM, and arch.
+ */
+async function loadSpecStrip() {
+  try {
+    const info = await window.electronAPI.getSystemInfo();
+
+    // OS label
+    const osMap = { win32: 'Windows', darwin: 'macOS', linux: 'Linux' };
+    const osLabel = osMap[info.platform] || info.platform;
+    // Extract major version from release string (e.g. "10.0.22631" → "10")
+    const osMajor = info.release ? info.release.split('.')[0] : '';
+    document.getElementById('spec-os').textContent =
+      osMajor ? `${osLabel} ${osMajor}` : osLabel;
+
+    // CPU — use first CPU model, strip redundant text
+    if (info.cpus && info.cpus.length > 0) {
+      let cpuModel = info.cpus[0].model
+        .replace(/\(R\)|\(TM\)|CPU|@.*/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      // Truncate to ~18 chars for the strip
+      if (cpuModel.length > 18) cpuModel = cpuModel.slice(0, 17) + '…';
+      document.getElementById('spec-cpu').textContent = cpuModel;
+    }
+
+    // RAM — total in GB
+    const ramGB = (info.totalmem / (1024 ** 3)).toFixed(1);
+    document.getElementById('spec-ram').textContent = `${ramGB} GB`;
+
+    // Arch
+    document.getElementById('spec-arch').textContent = info.arch || '—';
+  } catch {
+    // Non-critical — leave dashes if it fails
+  }
+}
+
+// ── Camera preview ────────────────────────────────────────────────────────
+
+/**
+ * Start live camera preview in the hero area using the selected deviceId.
+ */
+async function startCameraPreview(deviceId) {
+  const video = document.getElementById('camera-preview');
+  if (!video) return;
+
+  // Stop any existing stream
+  if (previewStream) {
+    previewStream.getTracks().forEach((t) => t.stop());
+    previewStream = null;
+    video.classList.remove('active');
+  }
+
+  if (!deviceId) return;
+
+  try {
+    const constraints = { video: { deviceId: { exact: deviceId } }, audio: false };
+    previewStream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = previewStream;
+    video.classList.add('active');
+  } catch {
+    // Preview failed — not critical, validation still works
+  }
+}
+
 // ── Camera selector ────────────────────────────────────────────────────────
 
 /**
@@ -74,23 +144,24 @@ async function enumerateCameras() {
 }
 
 /**
- * Populate the camera <select> and show it when there are ≥2 cameras.
- * If only 1 camera, auto-select it silently.
+ * Populate the camera <select> and show it when there is ≥1 camera.
+ * Always shows the selector so the user can confirm which camera is active.
  */
 async function setupCameraSelector(cameras) {
-  const wrap   = document.getElementById('camera-select-wrap');
-  const select = document.getElementById('camera-select');
+  const wrap     = document.getElementById('camera-select-wrap');
+  const select   = document.getElementById('camera-select');
+  const noDevice = document.getElementById('camera-no-device');
 
-  if (cameras.length === 0) return;
-
-  // Auto-select first camera regardless
-  selectedCameraId = cameras[0].deviceId;
-
-  if (cameras.length < 2) {
-    // Only one camera — no need to show selector
-    wrap.hidden = true;
+  if (cameras.length === 0) {
+    wrap.hidden     = true;
+    noDevice.hidden = false;
     return;
   }
+
+  noDevice.hidden = true;
+
+  // Auto-select first camera
+  selectedCameraId = cameras[0].deviceId;
 
   // Populate options
   select.innerHTML = '';
@@ -104,8 +175,12 @@ async function setupCameraSelector(cameras) {
   select.value = selectedCameraId;
   wrap.hidden = false;
 
-  select.addEventListener('change', () => {
+  // Start preview for initial selection
+  await startCameraPreview(selectedCameraId);
+
+  select.addEventListener('change', async () => {
     selectedCameraId = select.value;
+    await startCameraPreview(selectedCameraId);
   });
 }
 
@@ -163,6 +238,9 @@ async function init() {
   if (verEl) {
     verEl.textContent = '';
   }
+
+  // Load device spec strip (non-blocking)
+  loadSpecStrip();
 
   // Set all checks to loading state
   ['check-internet', 'check-camera', 'check-hardware'].forEach(setChecking);

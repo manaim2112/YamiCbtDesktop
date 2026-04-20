@@ -81,41 +81,208 @@ body {
 
 /* ── Card ── */
 .card {
-  width: 360px;
+  width: 380px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 20px;
-  padding: 28px 24px 24px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0;
 }
 
-/* ── Brand ── */
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.brand-icon {
-  width: 20px;
-  height: 20px;
-  color: var(--accent);
+/* ── Camera hero ── */
+.camera-hero {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e40af 100%);
+  overflow: hidden;
   flex-shrink: 0;
 }
 
+.camera-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.camera-preview.active {
+  opacity: 1;
+}
+
+.camera-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.45) 0%,
+    transparent 40%,
+    transparent 55%,
+    rgba(0,0,0,0.55) 100%
+  );
+}
+
+.camera-overlay-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-icon {
+  width: 18px;
+  height: 18px;
+  color: #fff;
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
 .brand-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text);
-  letter-spacing: -0.2px;
+  color: #fff;
+  letter-spacing: -0.1px;
   flex: 1;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
 }
 
 .app-version {
-  font-size: 11px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.55);
+}
+
+/* Camera selector inside hero */
+.camera-hero-bottom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cam-icon {
+  width: 15px;
+  height: 15px;
+  color: rgba(255,255,255,0.7);
+  flex-shrink: 0;
+}
+
+.select-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.camera-select {
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 6px 28px 6px 10px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.camera-select:focus {
+  border-color: rgba(255,255,255,0.5);
+  background: rgba(0,0,0,0.6);
+}
+
+.camera-select option {
+  background: #18181c;
+  color: var(--text);
+}
+
+.select-arrow {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  color: rgba(255,255,255,0.6);
+  pointer-events: none;
+}
+
+/* No camera placeholder */
+.camera-no-device {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+}
+
+.camera-no-device svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+/* ── Spec strip ── */
+.spec-strip {
+  display: flex;
+  align-items: stretch;
+  padding: 10px 16px;
+  background: rgba(99,102,241,0.05);
+  border-bottom: 1px solid var(--border);
+  gap: 0;
+}
+
+.spec-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.spec-label {
+  font-size: 9px;
+  font-weight: 600;
   color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.spec-value {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+
+.spec-divider {
+  width: 1px;
+  background: var(--border);
+  margin: 2px 8px;
+  align-self: stretch;
+}
+
+/* ── Inner padding wrapper for checks + button ── */
+.card-body {
+  padding: 20px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* ── Check list ── */
@@ -124,6 +291,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 20px 20px 0;
 }
 
 /* ── Check item ── */
@@ -206,54 +374,6 @@ body {
 @keyframes spin { to { transform: rotate(360deg); } }
 .icon-spin { animation: spin 1.2s linear infinite; }
 
-/* ── Camera selector ── */
-.camera-select-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.select-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.select-wrapper {
-  position: relative;
-}
-
-.camera-select {
-  width: 100%;
-  appearance: none;
-  -webkit-appearance: none;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-size: 13px;
-  font-family: inherit;
-  padding: 9px 36px 9px 12px;
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.camera-select:focus { border-color: var(--accent); }
-
-.select-arrow {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 14px;
-  height: 14px;
-  color: var(--muted);
-  pointer-events: none;
-}
-
 /* ── Note ── */
 .note {
   font-size: 12px;
@@ -263,11 +383,12 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.2);
   border-radius: 8px;
   line-height: 1.5;
+  margin: 0 20px;
 }
 
 /* ── Start button ── */
 .btn-start {
-  width: 100%;
+  margin: 0 20px 20px;
   padding: 11px;
   font-size: 14px;
   font-weight: 600;

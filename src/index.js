@@ -7,7 +7,7 @@ if (require('electron-squirrel-startup')) {
 
 const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const path = require('node:path');
-const { execFile } = require('child_process');
+const { spawn } = require('child_process');
 const validator = require('./validator');
 const { isAllowedUrl, cameraPermissionHandler, windowOpenHandler } = validator;
 const { EXIT_SHORTCUT, CBT_URL } = require('./constants');
@@ -40,36 +40,119 @@ let cbtWindow = null;
 // ---------------------------------------------------------------------------
 
 /**
- * On Windows, the Win key is processed at kernel level and cannot be blocked
- * by Electron's globalShortcut or before-input-event. We use a PowerShell
- * one-liner that calls the Windows API SystemParametersInfo with
- * SPI_SETSCREENSAVERRUNNING (0x61) which is the documented way to suppress
- * the Win key for kiosk applications.
+ * On Windows 10/11, the Win key is handled at kernel level and cannot be
+ * blocked by SPI_SETSCREENSAVERRUNNING (unreliable on modern Windows) or
+ * Electron's globalShortcut / before-input-event.
+ *
+ * The only reliable method is a WH_KEYBOARD_LL low-level keyboard hook that
+ * intercepts VK_LWIN (0x5B) and VK_RWIN (0x5C) before they reach the shell.
+ * We run this hook in a background PowerShell process that stays alive while
+ * the CBT window is open, then kill it on close.
  */
-function suppressWinKey() {
-  if (process.platform !== 'win32') return;
-  const ps = `Add-Type -TypeDefinition '
+
+/** @type {import('child_process').ChildProcess|null} */
+let winKeyHookProcess = null;
+
+// C# source for the low-level keyboard hook. Runs a message loop in a
+// dedicated STA thread so the hook stays active.
+const WIN_KEY_HOOK_CS = `
 using System;
 using System.Runtime.InteropServices;
-public class WinKey {
-  [DllImport("user32.dll")] public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
-  public static void Suppress() { SystemParametersInfo(0x61, 1, IntPtr.Zero, 0); }
+using System.Threading;
+using System.Diagnostics;
+
+class WinKeyBlocker {
+  const int WH_KEYBOARD_LL = 13;
+  const int WM_KEYDOWN     = 0x0100;
+  const int WM_KEYUP       = 0x0101;
+  const int WM_SYSKEYDOWN  = 0x0104;
+  const int WM_SYSKEYUP    = 0x0105;
+  const int VK_LWIN        = 0x5B;
+  const int VK_RWIN        = 0x5C;
+
+  delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+  [DllImport("user32.dll")] static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+  [DllImport("user32.dll")] static extern bool   UnhookWindowsHookEx(IntPtr hhk);
+  [DllImport("user32.dll")] static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+  [DllImport("kernel32.dll")] static extern IntPtr GetModuleHandle(string lpModuleName);
+  [DllImport("user32.dll")] static extern int GetMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
+  [DllImport("user32.dll")] static extern bool TranslateMessage(ref MSG lpMsg);
+  [DllImport("user32.dll")] static extern IntPtr DispatchMessage(ref MSG lpMsg);
+
+  [StructLayout(LayoutKind.Sequential)]
+  struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam; public IntPtr lParam; public uint time; public int ptX; public int ptY; }
+
+  [StructLayout(LayoutKind.Sequential)]
+  struct KBDLLHOOKSTRUCT { public uint vkCode; public uint scanCode; public uint flags; public uint time; public IntPtr dwExtraInfo; }
+
+  static IntPtr hookId = IntPtr.Zero;
+  static LowLevelKeyboardProc hookProc;
+
+  static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam) {
+    if (nCode >= 0) {
+      var kb = (KBDLLHOOKSTRUCT)Marshal.PtrToStructure(lParam, typeof(KBDLLHOOKSTRUCT));
+      if (kb.vkCode == VK_LWIN || kb.vkCode == VK_RWIN) {
+        return (IntPtr)1; // swallow the key
+      }
+    }
+    return CallNextHookEx(hookId, nCode, wParam, lParam);
+  }
+
+  static void RunHook() {
+    hookProc = HookCallback;
+    using (var curProcess = Process.GetCurrentProcess())
+    using (var curModule  = curProcess.MainModule) {
+      hookId = SetWindowsHookEx(WH_KEYBOARD_LL, hookProc, GetModuleHandle(curModule.ModuleName), 0);
+    }
+    MSG msg;
+    while (GetMessage(out msg, IntPtr.Zero, 0, 0) != 0) {
+      TranslateMessage(ref msg);
+      DispatchMessage(ref msg);
+    }
+    UnhookWindowsHookEx(hookId);
+  }
+
+  static void Main() {
+    var t = new Thread(RunHook);
+    t.SetApartmentState(ApartmentState.STA);
+    t.IsBackground = false;
+    t.Start();
+    t.Join();
+  }
 }
-'; [WinKey]::Suppress()`;
-  execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], { windowsHide: true }, () => {});
+`;
+
+function suppressWinKey() {
+  if (process.platform !== 'win32') return;
+  if (winKeyHookProcess) return; // already running
+
+  // Write C# source to a temp file and compile+run it via PowerShell
+  const ps = `
+$src = @'
+${WIN_KEY_HOOK_CS}
+'@
+Add-Type -TypeDefinition $src -Language CSharp
+[WinKeyBlocker]::Main()
+`;
+
+  // Use spawn — the process stays alive (message loop)
+  winKeyHookProcess = spawn(
+    'powershell',
+    ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', ps],
+    { windowsHide: true, detached: false }
+  );
+
+  winKeyHookProcess.on('error', () => { winKeyHookProcess = null; });
+  winKeyHookProcess.on('exit',  () => { winKeyHookProcess = null; });
 }
 
 function restoreWinKey() {
   if (process.platform !== 'win32') return;
-  const ps = `Add-Type -TypeDefinition '
-using System;
-using System.Runtime.InteropServices;
-public class WinKey {
-  [DllImport("user32.dll")] public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
-  public static void Restore() { SystemParametersInfo(0x61, 0, IntPtr.Zero, 0); }
-}
-'; [WinKey]::Restore()`;
-  execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], { windowsHide: true }, () => {});
+  if (winKeyHookProcess) {
+    winKeyHookProcess.kill();
+    winKeyHookProcess = null;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -79,7 +162,7 @@ public class WinKey {
 function createLauncherWindow() {
   launcherWindow = new BrowserWindow({
     width: 420,
-    height: 560,
+    height: 640,
     resizable: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -87,6 +170,16 @@ function createLauncherWindow() {
       contextIsolation: true,
     },
   });
+
+  // Grant camera permission in launcher so renderer can call getUserMedia
+  // for device enumeration (enumerateCameras in renderer.js).
+  // Without this, Electron denies the request by default and the camera
+  // list stays empty — selector never appears.
+  launcherWindow.webContents.session.setPermissionRequestHandler(
+    (_wc, permission, callback) => {
+      callback(permission === 'media');
+    }
+  );
 
   launcherWindow.loadFile(path.join(__dirname, 'index.html'));
 
@@ -303,6 +396,18 @@ function registerIpcHandlers() {
       const { autoUpdater } = require('electron');
       autoUpdater.quitAndInstall();
     }
+  });
+
+  // System info — return OS, CPU, RAM, arch for spec display
+  ipcMain.handle('get-system-info', () => {
+    const os = require('os');
+    return {
+      platform: os.platform(),
+      release: os.release(),
+      cpus: os.cpus(),
+      totalmem: os.totalmem(),
+      arch: os.arch(),
+    };
   });
 }
 
